@@ -12,9 +12,22 @@ const yourScoreDisplay = document.getElementById("your-score");
 const opponentScoreDisplay = document.getElementById("opponent-score");
 const gameOverDisplay = document.getElementById("game-over");
 const retryButton = document.getElementById("retry-button");
+const readyButton = document.getElementById("ready-button"); // Get the Ready button
+const usernameDisplay = document.getElementById("username"); // Get the username display element
 
 let gameId;
 let isGameActive = false;
+let username;
+
+// Prompt for username
+username = prompt("Enter your username:");
+if (username) {
+    socket.emit("setUsername", username);
+    usernameDisplay.textContent = username; // Display the username
+} else {
+    alert("Username is required to play.");
+    window.location.reload(); // Reload the page to prompt again
+}
 
 // Create a new game
 createGameButton.addEventListener("click", () => {
@@ -23,7 +36,7 @@ createGameButton.addEventListener("click", () => {
 
 // Join an existing game
 joinGameButton.addEventListener("click", () => {
-    const gameId = gameIdInput.value.trim();
+    gameId = gameIdInput.value.trim();
     if (gameId) {
         socket.emit("joinGame", gameId);
     }
@@ -39,29 +52,47 @@ socket.on("gameCreated", (id) => {
 
 // Handle game joining
 socket.on("gameJoined", (gameState) => {
-    console.log("Client joined game:", gameState); // Log game joined
     lobby.classList.add("hidden");
     game.classList.remove("hidden");
-    isGameActive = true;
-    inputBox.disabled = false;
-    inputBox.focus();
+    inputBox.disabled = true; // Disable input box until game starts
+    readyButton.disabled = false; // Enable the Ready button
+});
+
+// Handle Ready button click
+readyButton.addEventListener("click", () => {
+    socket.emit("playerReady", gameId);
+    readyButton.disabled = true; // Disable the Ready button after clicking
 });
 
 // Handle game start
 socket.on("gameStarted", (word) => {
+    isGameActive = true;
     wordDisplay.textContent = word;
-    inputBox.value = "";
+    inputBox.disabled = false;
     inputBox.focus();
 });
 
-// Handle score updates
-socket.on("updateScores", (scores) => {
-    yourScoreDisplay.textContent = scores[socket.id]; // Update your score
-    const opponentId = Object.keys(scores).find((id) => id !== socket.id); // Find the opponent's ID
-    if (opponentId) {
-        opponentScoreDisplay.textContent = scores[opponentId]; // Update opponent's score
-    }
+// Handle game updates (new word and scores)
+socket.on("gameUpdated", (data) => {
+    wordDisplay.textContent = data.word;
+    inputBox.value = "";
+    inputBox.focus();
+    updateScores(data.scores);
 });
+
+// Handle score updates
+socket.on("updateScores", (data) => {
+    updateScores(data.scores);
+});
+
+// Function to update scores
+function updateScores(scores) {
+    yourScoreDisplay.textContent = scores[username]; // Update your score
+    const opponentUsername = Object.keys(scores).find((u) => u !== username); // Find the opponent's username
+    if (opponentUsername) {
+        opponentScoreDisplay.textContent = scores[opponentUsername]; // Update opponent's score
+    }
+}
 
 // Handle timer updates
 socket.on("updateTimer", (time) => {
@@ -74,6 +105,7 @@ socket.on("gameOver", (scores) => {
     inputBox.disabled = true;
     gameOverDisplay.classList.remove("hidden");
     retryButton.classList.remove("hidden");
+    updateScores(scores);
 });
 
 // Handle player input

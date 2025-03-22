@@ -9,6 +9,7 @@
 <body>
     <div class="container">
         <h1>Word Rush - Multiplayer</h1>
+        <div id="username-display">Username: <span id="username"></span></div>
         <div id="lobby">
             <button id="create-game">Create Game</button>
             <input type="text" id="game-id" placeholder="Enter Game ID">
@@ -22,6 +23,7 @@
                 <div>Your Score: <span id="your-score">0</span></div>
                 <div>Opponent Score: <span id="opponent-score">0</span></div>
             </div>
+            <button id="ready-button">Ready</button>
             <div id="game-over" class="hidden">Game Over!</div>
             <button id="retry-button" class="hidden">Retry</button>
         </div>
