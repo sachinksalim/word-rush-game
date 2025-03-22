@@ -39,6 +39,7 @@ socket.on("gameCreated", (id) => {
 
 // Handle game joining
 socket.on("gameJoined", (gameState) => {
+    console.log("Client joined game:", gameState); // Log game joined
     lobby.classList.add("hidden");
     game.classList.remove("hidden");
     isGameActive = true;
