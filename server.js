@@ -1,7 +1,13 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const path = require("path");
+import express from "express";
+import http from "http";
+import { Server } from "socket.io";
+import path from "path";
+import { fileURLToPath } from "url";
+import { words, timerDuration } from "./config.js"; // Import named exports
+
+// Fix for __dirname in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
@@ -10,7 +16,6 @@ const io = new Server(server);
 // Serve static files from the "public" folder
 app.use(express.static(path.join(__dirname, "public")));
 
-const words = ["apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew"];
 const games = {}; // Store active games
 
 io.on("connection", (socket) => {
@@ -23,7 +28,8 @@ io.on("connection", (socket) => {
             players: [socket.id],
             scores: { [socket.id]: 0 },
             currentWord: "",
-            timer: 10,
+            currentWordIndex: 0, // Track the current word index
+            timer: timerDuration, // Use timer duration from config
             isGameActive: false,
         };
         socket.join(gameId);
@@ -57,7 +63,10 @@ io.on("connection", (socket) => {
                 game.scores[socket.id] = Math.max(game.scores[socket.id] - 1, 0); // -1 point for incorrect typing
             }
             io.to(gameId).emit("updateScores", game.scores);
-            game.currentWord = words[Math.floor(Math.random() * words.length)]; // Pick a new word
+
+            // Move to the next word sequentially
+            game.currentWordIndex = (game.currentWordIndex + 1) % words.length; // Circle back to 0 if at the end
+            game.currentWord = words[game.currentWordIndex]; // Pick the next word
             io.to(gameId).emit("gameStarted", game.currentWord);
         }
     });
@@ -83,8 +92,9 @@ function startGame(gameId) {
     const game = games[gameId];
     if (game) {
         game.isGameActive = true;
-        game.currentWord = words[Math.floor(Math.random() * words.length)];
-        game.timer = 10;
+        game.currentWordIndex = 0; // Start from the first word
+        game.currentWord = words[game.currentWordIndex]; // Use the first word from config
+        game.timer = timerDuration; // Use timer duration from config
         io.to(gameId).emit("gameStarted", game.currentWord);
 
         // Start the timer
@@ -105,3 +115,6 @@ const PORT = 3000;
 server.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+// Export the server and games object for testing
+export { server, games };

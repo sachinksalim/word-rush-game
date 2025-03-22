@@ -55,9 +55,11 @@ socket.on("gameStarted", (word) => {
 
 // Handle score updates
 socket.on("updateScores", (scores) => {
-    yourScoreDisplay.textContent = scores[socket.id];
-    const opponentId = Object.keys(scores).find((id) => id !== socket.id);
-    opponentScoreDisplay.textContent = scores[opponentId];
+    yourScoreDisplay.textContent = scores[socket.id]; // Update your score
+    const opponentId = Object.keys(scores).find((id) => id !== socket.id); // Find the opponent's ID
+    if (opponentId) {
+        opponentScoreDisplay.textContent = scores[opponentId]; // Update opponent's score
+    }
 });
 
 // Handle timer updates
