@@ -84,9 +84,9 @@ inputBox.addEventListener("keyup", (event) => {
 
 // Handle retry
 retryButton.addEventListener("click", () => {
-    socket.emit("startGame", gameId);
     gameOverDisplay.classList.add("hidden");
     retryButton.classList.add("hidden");
     inputBox.disabled = false;
     inputBox.focus();
+    socket.emit("joinGame", gameId); // Rejoin the game
 });

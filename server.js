@@ -37,6 +37,11 @@ io.on("connection", (socket) => {
             games[gameId].scores[socket.id] = 0;
             socket.join(gameId);
             io.to(gameId).emit("gameJoined", games[gameId]);
+
+            // Start the game automatically when two players join
+            if (games[gameId].players.length === 2) {
+                startGame(gameId);
+            }
         } else {
             socket.emit("joinError", "Invalid game ID or game is full.");
         }
@@ -52,28 +57,8 @@ io.on("connection", (socket) => {
                 game.scores[socket.id] = Math.max(game.scores[socket.id] - 1, 0); // -1 point for incorrect typing
             }
             io.to(gameId).emit("updateScores", game.scores);
-        }
-    });
-
-    // Handle game start
-    socket.on("startGame", (gameId) => {
-        const game = games[gameId];
-        if (game && game.players.length === 2) {
-            game.isGameActive = true;
-            game.currentWord = words[Math.floor(Math.random() * words.length)];
-            game.timer = 10;
+            game.currentWord = words[Math.floor(Math.random() * words.length)]; // Pick a new word
             io.to(gameId).emit("gameStarted", game.currentWord);
-
-            // Start the timer
-            const timerInterval = setInterval(() => {
-                game.timer--;
-                io.to(gameId).emit("updateTimer", game.timer);
-                if (game.timer <= 0) {
-                    clearInterval(timerInterval);
-                    game.isGameActive = false;
-                    io.to(gameId).emit("gameOver", game.scores);
-                }
-            }, 1000);
         }
     });
 
@@ -92,6 +77,28 @@ io.on("connection", (socket) => {
         }
     });
 });
+
+// Function to start the game
+function startGame(gameId) {
+    const game = games[gameId];
+    if (game) {
+        game.isGameActive = true;
+        game.currentWord = words[Math.floor(Math.random() * words.length)];
+        game.timer = 10;
+        io.to(gameId).emit("gameStarted", game.currentWord);
+
+        // Start the timer
+        const timerInterval = setInterval(() => {
+            game.timer--;
+            io.to(gameId).emit("updateTimer", game.timer);
+            if (game.timer <= 0) {
+                clearInterval(timerInterval);
+                game.isGameActive = false;
+                io.to(gameId).emit("gameOver", game.scores);
+            }
+        }, 1000);
+    }
+}
 
 // Start the server
 const PORT = 3000;
