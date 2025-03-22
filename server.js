@@ -17,16 +17,41 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, "public")));
 
 const games = {}; // Store active games
+const players = {}; // Store player usernames and socket IDs
 
 io.on("connection", (socket) => {
     console.log("A player connected:", socket.id);
 
+    // Handle username selection
+    socket.on("setUsername", (username) => {
+        if (!username || typeof username !== "string") {
+            socket.emit("usernameError", "Invalid username.");
+            return;
+        }
+
+        // Check if the username is already taken
+        if (Object.values(players).includes(username)) {
+            socket.emit("usernameError", "Username is already taken.");
+            return;
+        }
+
+        // Store the username
+        players[socket.id] = username;
+        socket.emit("usernameSet", username);
+        console.log(`Player ${socket.id} set username to ${username}`);
+    });
+
     // Handle game creation
     socket.on("createGame", () => {
+        if (!players[socket.id]) {
+            socket.emit("gameError", "Please set a username first.");
+            return;
+        }
+
         const gameId = Math.random().toString(36).substring(2, 8); // Generate a unique game ID
         games[gameId] = {
-            players: [socket.id],
-            scores: { [socket.id]: 0 },
+            players: [players[socket.id]], // Store usernames instead of socket IDs
+            scores: { [players[socket.id]]: 0 }, // Use usernames as keys
             currentWord: "",
             currentWordIndex: 0, // Track the current word index
             timer: timerDuration, // Use timer duration from config
@@ -39,6 +64,11 @@ io.on("connection", (socket) => {
 
     // Handle game joining
     socket.on("joinGame", (gameId) => {
+        if (!players[socket.id]) {
+            socket.emit("gameError", "Please set a username first.");
+            return;
+        }
+
         if (!games[gameId]) {
             socket.emit("joinError", "Invalid game ID.");
             return;
@@ -47,8 +77,10 @@ io.on("connection", (socket) => {
             socket.emit("joinError", "Game is full.");
             return;
         }
-        games[gameId].players.push(socket.id);
-        games[gameId].scores[socket.id] = 0;
+
+        const username = players[socket.id];
+        games[gameId].players.push(username);
+        games[gameId].scores[username] = 0;
         games[gameId].readyPlayers = []; // Initialize readyPlayers array
         socket.join(gameId);
         io.to(gameId).emit("gameJoined", games[gameId]);
@@ -57,10 +89,12 @@ io.on("connection", (socket) => {
     // Handle player ready event
     socket.on("playerReady", (gameId) => {
         const game = games[gameId];
-        if (!game || game.readyPlayers.includes(socket.id)) return;
+        const username = players[socket.id];
 
-        game.readyPlayers.push(socket.id); // Mark player as ready
-        console.log(`Player ${socket.id} is ready for game ${gameId}`); // Log player readiness
+        if (!game || !username || game.readyPlayers.includes(username)) return;
+
+        game.readyPlayers.push(username); // Mark player as ready
+        console.log(`Player ${username} is ready for game ${gameId}`); // Log player readiness
 
         // Start the game if both players are ready
         if (game.readyPlayers.length === 2) {
@@ -71,25 +105,28 @@ io.on("connection", (socket) => {
 
     // Handle player input
     socket.on("playerInput", (gameId, input) => {
-        console.log(`Player input received: ${input}`); // Log player input
         const game = games[gameId];
-        if (!game || !game.isGameActive) {
+        const username = players[socket.id];
+
+        if (!game || !game.isGameActive || !username) {
             console.log("Game is not active or does not exist.");
             return;
         }
-    
+
+        console.log(`Player input received from ${username}: ${input}`); // Log player input
+
         if (input === game.currentWord) {
-            game.scores[socket.id] += 2; // +2 points for correct typing
+            game.scores[username] += 2; // +2 points for correct typing
         } else {
-            game.scores[socket.id] = Math.max(game.scores[socket.id] - 1, 0); // -1 point for incorrect typing
+            game.scores[username] = Math.max(game.scores[username] - 1, 0); // -1 point for incorrect typing
         }
         console.log(`Updated scores:`, game.scores); // Log updated scores
         io.to(gameId).emit("updateScores", game.scores);
-    
+
         // Move to the next word sequentially
         game.currentWordIndex = (game.currentWordIndex + 1) % words.length; // Circle back to 0 if at the end
         game.currentWord = words[game.currentWordIndex]; // Pick the next word
-    
+
         // Emit 'gameUpdated' with the new word and scores
         io.to(gameId).emit("gameUpdated", {
             word: game.currentWord,
@@ -99,12 +136,14 @@ io.on("connection", (socket) => {
 
     // Handle player disconnect
     socket.on("disconnect", () => {
-        console.log("A player disconnected:", socket.id);
+        const username = players[socket.id];
+        console.log(`Player ${username} (${socket.id}) disconnected.`);
+
         // Clean up games if a player disconnects
         for (const gameId in games) {
             const game = games[gameId];
-            if (game.players.includes(socket.id)) {
-                game.players = game.players.filter((player) => player !== socket.id);
+            if (game.players.includes(username)) {
+                game.players = game.players.filter((player) => player !== username);
                 if (game.players.length === 0) {
                     clearInterval(game.timerInterval); // Clear the timer interval
                     delete games[gameId];
@@ -116,6 +155,9 @@ io.on("connection", (socket) => {
                 }
             }
         }
+
+        // Remove the player from the players object
+        delete players[socket.id];
     });
 });
 
