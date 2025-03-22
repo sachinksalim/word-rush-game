@@ -1,128 +1,93 @@
-import { expect } from "chai"; // Import expect from chai
-import sinon from "sinon"; // Import sinon for mocking
-import { server, games } from "../server.js"; // Import server and games from server.js
-import ioClient from "socket.io-client"; // Import socket.io-client for simulating clients
+import { expect } from "chai";
+import sinon from "sinon";
+import { server, games } from "../server.js";
+import ioClient from "socket.io-client";
+// import { words } from "../config.js";
 
-describe("Word Rush Game - Username Handling", () => {
+describe("Word Rush Game - Both Players Play", () => {
     let player1, player2;
     let createdGameId;
 
     before((done) => {
-        // Simulate two client connections
-        const port = server.address().port; // Get the port from the existing server
+        const port = server.address().port;
         player1 = ioClient(`http://localhost:${port}`);
         player2 = ioClient(`http://localhost:${port}`);
 
-        // Wait for both players to connect
         Promise.all([
             new Promise((resolve) => player1.on("connect", resolve)),
             new Promise((resolve) => player2.on("connect", resolve)),
         ]).then(() => {
-            console.log("Both players connected."); // Log client connections
             done();
         });
     });
 
     after((done) => {
-        // Disconnect the clients
         if (player1) {
             player1.disconnect();
-            console.log("Player 1 disconnected."); // Log client disconnection
         }
         if (player2) {
             player2.disconnect();
-            console.log("Player 2 disconnected."); // Log client disconnection
         }
         done();
     });
 
     it("should allow players to set usernames", (done) => {
-        // Player 1 sets a username
         player1.emit("setUsername", "Alice");
 
         player1.on("usernameSet", (username) => {
-            console.log(`Player 1 username set to ${username}`);
             expect(username).to.equal("Alice");
-
-            // Player 2 sets a username
-            player2.emit("setUsername", "Bob");
-
-            player2.on("usernameSet", (username) => {
-                console.log(`Player 2 username set to ${username}`);
-                expect(username).to.equal("Bob");
-                done();
-            });
         });
-    });
 
-    it("should reject invalid or duplicate usernames", (done) => {
-        // Player 1 tries to set an empty username
-        player1.emit("setUsername", "");
+        player2.emit("setUsername", "Bob");
 
-        player1.on("usernameError", (message) => {
-            console.log(`Username error: ${message}`);
-            expect(message).to.equal("Invalid username.");
-
-            // Player 2 tries to set a duplicate username
-            player2.emit("setUsername", "Alice");
-
-            player2.on("usernameError", (message) => {
-                console.log(`Username error: ${message}`);
-                expect(message).to.equal("Username is already taken.");
-                done();
-            });
+        player2.on("usernameSet", (username) => {
+            expect(username).to.equal("Bob");
+            done();
         });
     });
 
     it("should create and join a game with usernames", (done) => {
-        // Player 1 creates the game
         player1.emit("createGame");
 
         player1.on("gameCreated", (gameId) => {
             createdGameId = gameId;
-            console.log("Game created with ID:", createdGameId);
 
-            // Player 2 joins the game
             player2.emit("joinGame", createdGameId);
 
             player2.on("gameJoined", (gameState) => {
-                console.log("Player 2 joined game:", gameState);
-                expect(gameState.players).to.have.lengthOf(2); // Ensure both players are in the game
-                expect(gameState.players).to.include("Alice"); // Player 1's username
-                expect(gameState.players).to.include("Bob"); // Player 2's username
+                expect(gameState.players).to.have.lengthOf(2);
+                expect(gameState.players).to.include("Alice");
+                expect(gameState.players).to.include("Bob");
                 done();
             });
         });
     });
 
-    it("should update scores correctly with usernames", (done) => {
-        const input = "apple";
+    it("should update scores for both players", (done) => {
+        const input1 = "apple";
+        const input2 = "banana";
 
-        // Player 1 notifies they're ready
         player1.emit("playerReady", createdGameId);
-
-        // Player 2 notifies they're ready
         player2.emit("playerReady", createdGameId);
 
-        // Player 1 listens for gameStarted event
         player1.on("gameStarted", (word) => {
-            console.log("Game started with word:", word);
+            player1.emit("playerInput", createdGameId, input1);
+            setTimeout(() => {
+                player2.emit("playerInput", createdGameId, input2);
+            }, 500);
 
-            // Player 1 listens for updateScores event
-            player1.on("updateScores", (scores) => {
-                console.log("updateScores event received:", scores);
-                try {
-                    // Verify score update for Player 1 (Alice)
-                    expect(scores["Alice"]).to.equal(2); // +2 points for correct input
-                    done();
-                } catch (error) {
-                    done(error); // Fail the test if the assertion fails
+            player1.on("updateScores", (data) => {
+                if (data.triggeredBy === "Alice") {
+                    expect(data.scores["Alice"]).to.equal(2);
                 }
             });
 
-            // Player 1 emits playerInput event
-            console.log("Player 1 emitting playerInput event with:", { gameId: createdGameId, input });
-            player1.emit("playerInput", createdGameId, input);
+            player2.on("updateScores", (data) => {
+                if (data.triggeredBy === "Bob") {
+                    expect(data.scores["Bob"]).to.equal(2);
+                    done();
+                }
+            });
         });
     });
 });

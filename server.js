@@ -121,7 +121,10 @@ io.on("connection", (socket) => {
             game.scores[username] = Math.max(game.scores[username] - 1, 0); // -1 point for incorrect typing
         }
         console.log(`Updated scores:`, game.scores); // Log updated scores
-        io.to(gameId).emit("updateScores", game.scores);
+        io.to(gameId).emit("updateScores", {
+            scores: game.scores,
+            triggeredBy: username,
+        });
 
         // Move to the next word sequentially
         game.currentWordIndex = (game.currentWordIndex + 1) % words.length; // Circle back to 0 if at the end
