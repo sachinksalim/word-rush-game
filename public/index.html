@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Rush - Multiplayer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Word Rush - Multiplayer</h1>
+        <div id="lobby">
+            <button id="create-game">Create Game</button>
+            <input type="text" id="game-id" placeholder="Enter Game ID">
+            <button id="join-game">Join Game</button>
+        </div>
+        <div id="game" class="hidden">
+            <div id="word-display">Waiting for word...</div>
+            <input type="text" id="input-box" placeholder="Type the word here..." autocomplete="off" disabled>
+            <div id="timer-display">Time: 10</div>
+            <div id="scores">
+                <div>Your Score: <span id="your-score">0</span></div>
+                <div>Opponent Score: <span id="opponent-score">0</span></div>
+            </div>
+            <div id="game-over" class="hidden">Game Over!</div>
+            <button id="retry-button" class="hidden">Retry</button>
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
