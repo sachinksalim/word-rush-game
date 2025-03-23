@@ -19,6 +19,8 @@ let gameId;
 let isGameActive = false;
 let username;
 
+//
+
 const USERNAME_DISABLED = true;
 if(USERNAME_DISABLED) {
     setTimeout(() => {
