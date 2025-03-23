@@ -13,7 +13,10 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "https://sachinksalim.github.io/word-rush-game/", // Replace with your GitHub Pages URL
+        origin: [
+            "https://sachinksalim.github.io/word-rush-game", // GitHub Pages URL
+            "http://localhost:3000", // Local development
+        ],
         methods: ["GET", "POST"],
     },
 });
