@@ -11,7 +11,12 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "https://sachinksalim.github.io/word-rush-game/", // Replace with your GitHub Pages URL
+        methods: ["GET", "POST"],
+    },
+});
 
 // Serve static files from the "public" folder
 app.use(express.static(path.join(__dirname, "public")));
