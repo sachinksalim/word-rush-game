@@ -14,25 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Node.js (if your frontend requires Node.js)
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16  # Use Node.js version 16
-
-      # Step 3: Install dependencies (if your frontend has a package.json)
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm install
-
-      # Step 4: Build the frontend (if your frontend requires a build step)
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm run build  # Replace with your build command if needed
-
-      # Step 5: Deploy the frontend to the 'gh-pages' branch
+      # Step 2: Deploy the frontend to the 'gh-pages' branch
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
