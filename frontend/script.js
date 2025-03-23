@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io("https://word-rush-game.onrender.com");
 
 const lobby = document.getElementById("lobby");
 const game = document.getElementById("game");
