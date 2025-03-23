@@ -18,5 +18,5 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}  # Use the GitHub token for authentication
+          github_token: ${{ secrets.GH_PAT }}  # Use the Personal Access Token
           publish_dir: frontend  # Copy the contents of the '/frontend' folder
