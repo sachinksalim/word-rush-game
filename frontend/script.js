@@ -140,3 +140,18 @@ retryButton.addEventListener("click", () => {
     inputBox.focus();
     socket.emit("joinGame", gameId);
 });
+
+// Log when connected to the backend
+socket.on("connect", () => {
+    console.log("Connected to backend:", socket.id);
+});
+
+// Log when disconnected from the backend
+socket.on("disconnect", () => {
+    console.log("Disconnected from backend");
+});
+
+// Log any connection errors
+socket.on("connect_error", (error) => {
+    console.error("Connection error:", error);
+});
