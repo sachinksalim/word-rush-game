@@ -12,22 +12,35 @@ const yourScoreDisplay = document.getElementById("your-score");
 const opponentScoreDisplay = document.getElementById("opponent-score");
 const gameOverDisplay = document.getElementById("game-over");
 const retryButton = document.getElementById("retry-button");
-const readyButton = document.getElementById("ready-button"); // Get the Ready button
-const usernameDisplay = document.getElementById("username"); // Get the username display element
+const readyButton = document.getElementById("ready-button");
+const usernameDisplay = document.getElementById("username");
 
 let gameId;
 let isGameActive = false;
 let username;
 
-// Prompt for username
-username = prompt("Enter your username:");
-if (username) {
-    socket.emit("setUsername", username);
-    usernameDisplay.textContent = username; // Display the username
-} else {
-    alert("Username is required to play.");
-    window.location.reload(); // Reload the page to prompt again
+const USERNAME_DISABLED = true;
+if(USERNAME_DISABLED) {
+    setTimeout(() => {
+        username = socket.id.substring(2, 12);
+        socket.emit("setUsername", username);
+    }, 500);
 }
+else {
+    // Prompt for username
+    username = prompt("Enter your username:");
+    if (username) {
+        socket.emit("setUsername", username);
+    } else {
+        alert("Username is required to play.");
+        window.location.reload(); // Reload the page to prompt again
+    }
+}
+
+socket.on("usernameSet", (username) => {
+    usernameDisplay.textContent = username; // Display the username
+    console.log("Username set as:", username);
+});
 
 // Create a new game
 createGameButton.addEventListener("click", () => {
@@ -54,14 +67,14 @@ socket.on("gameCreated", (id) => {
 socket.on("gameJoined", (gameState) => {
     lobby.classList.add("hidden");
     game.classList.remove("hidden");
-    inputBox.disabled = true; // Disable input box until game starts
-    readyButton.disabled = false; // Enable the Ready button
+    inputBox.disabled = true;
+    readyButton.disabled = false;
 });
 
 // Handle Ready button click
 readyButton.addEventListener("click", () => {
     socket.emit("playerReady", gameId);
-    readyButton.disabled = true; // Disable the Ready button after clicking
+    readyButton.disabled = true;
 });
 
 // Handle game start
@@ -87,7 +100,7 @@ socket.on("updateScores", (data) => {
 
 // Function to update scores
 function updateScores(scores) {
-    yourScoreDisplay.textContent = scores[username]; // Update your score
+    yourScoreDisplay.textContent = scores[username]; // Use socket.id as the username
     const opponentUsername = Object.keys(scores).find((u) => u !== username); // Find the opponent's username
     if (opponentUsername) {
         opponentScoreDisplay.textContent = scores[opponentUsername]; // Update opponent's score
@@ -123,5 +136,5 @@ retryButton.addEventListener("click", () => {
     retryButton.classList.add("hidden");
     inputBox.disabled = false;
     inputBox.focus();
-    socket.emit("joinGame", gameId); // Rejoin the game
+    socket.emit("joinGame", gameId);
 });
