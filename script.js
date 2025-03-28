@@ -1,4 +1,7 @@
-const socket = io("https://word-rush-game.onrender.com");
+const socket = io("https://word-rush-game.onrender.com", {
+    withCredentials: true,
+    transports: ["websocket", "polling"] // Explicitly specify transports
+  });
 
 const lobby = document.getElementById("lobby");
 const game = document.getElementById("game");
