@@ -3,6 +3,7 @@ import http from "http";
 import { Server } from "socket.io";
 import path from "path";
 import { fileURLToPath } from "url";
+import cors from 'cors';
 import { words, timerDuration } from "./config.js"; // Import named exports
 
 // Fix for __dirname in ES Modules
@@ -10,10 +11,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.use(cors({
+    origin: [
+      "https://sachinksalim.github.io",
+      "https://sachinksalim.github.io/word-rush-game"
+    ],
+    credentials: true
+  }));
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: [
+            "https://sachinksalim.github.io",
             "https://sachinksalim.github.io/word-rush-game", // GitHub Pages URL
             "http://localhost:3000", // Local development
         ],
